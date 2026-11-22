@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Uchta proyeksiya bosqichma-bosqich</title>
+<style>
+  :root{--g:#1b5e20;--g2:#2e7d32;--bg:#eef2ef;--ink:#14213d}
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Segoe UI",Arial,sans-serif;background:var(--bg);color:#1d2b24}
+  header{background:var(--g);color:#fff;padding:10px 18px;display:flex;align-items:center;gap:14px;flex-wrap:wrap}
+  header h1{font-size:20px;margin:0;font-weight:700}
+  header span{opacity:.9;font-size:14px}
+  .wrap{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:14px;padding:14px;max-width:1500px;margin:auto}
+  @media(max-width:900px){.wrap{grid-template-columns:1fr}}
+  .card{background:#fff;border-radius:10px;box-shadow:0 1px 4px rgba(0,0,0,.12);padding:12px}
+  #sheet{width:100%;height:auto;display:block;background:#fff;border:1px solid #c9d3cc;border-radius:6px}
+  #caption{margin-top:10px;min-height:58px;padding:10px 14px;border-left:6px solid var(--g2);background:#f3f8f4;font-size:18px;line-height:1.4;border-radius:4px}
+  #caption .hint{color:#b3261e;font-weight:600}
+  .controls{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+  button{font-size:16px;padding:9px 14px;border:0;border-radius:7px;background:var(--g2);color:#fff;cursor:pointer;font-weight:600}
+  button:hover{background:var(--g)}
+  button.sec{background:#dfe8e1;color:#1b3a24}
+  button.sec:hover{background:#c8d8cc}
+  button.attn{background:#b3261e;animation:pulse 1s infinite}
+  @keyframes pulse{50%{box-shadow:0 0 0 6px rgba(179,38,30,.25)}}
+  h2{font-size:17px;margin:4px 0 8px;color:var(--g)}
+  ol#steps{margin:0;padding:0;list-style:none;counter-reset:s}
+  ol#steps li{counter-increment:s;padding:7px 8px 7px 38px;position:relative;border-radius:6px;cursor:pointer;font-size:15px;margin-bottom:2px}
+  ol#steps li::before{content:counter(s);position:absolute;left:8px;top:6px;width:22px;height:22px;border-radius:50%;background:#dfe8e1;color:#1b3a24;font-size:13px;font-weight:700;display:flex;align-items:center;justify-content:center}
+  ol#steps li:hover{background:#f0f5f1}
+  ol#steps li.done{color:#6b7c71}
+  ol#steps li.done::before{background:#9cc5a3;color:#fff;content:"✓"}
+  ol#steps li.cur{background:#e3f1e5;font-weight:700;color:var(--g)}
+  ol#steps li.cur::before{background:var(--g2);color:#fff}
+  .set{display:grid;grid-template-columns:1fr auto;gap:7px 10px;align-items:center;font-size:14.5px}
+  .set label.ck{grid-column:1/3;display:flex;gap:8px;align-items:center;cursor:pointer}
+  .set input[type=range]{width:140px}
+  .set input[type=color]{width:44px;height:28px;border:0;padding:0;background:none}
+  #iso{width:100%;height:auto;display:block;background:#fbfcfb;border-radius:6px}
+  .side>.card{margin-bottom:12px}
+  .legend{font-size:13.5px;line-height:1.7;margin-top:6px}
+  .legend i{display:inline-block;width:46px;height:0;vertical-align:middle;margin-right:8px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Uchta proyeksiya bosqichma-bosqich</h1>
+  <span>8-sinf chizmachilik · Bosh, chapdan va ustdan ko'rinishlar</span>
+</header>
+<div class="wrap">
+  <div class="card">
+    <canvas id="sheet"></canvas>
+    <div id="caption">«Boshlash» tugmasini bosing.</div>
+    <div class="controls">
+      <button id="bPlay">▶ Boshlash</button>
+      <button id="bCont" class="sec">⏭ Davom etish</button>
+      <button id="bPrev" class="sec">◀ Oldingi qadam</button>
+      <button id="bNext" class="sec">Keyingi qadam ▶</button>
+      <button id="bReset" class="sec">⟲ Qaytadan</button>
+    </div>
+  </div>
+  <div class="side">
+    <div class="card">
+      <h2>Qadamlar</h2>
+      <ol id="steps"></ol>
+    </div>
+    <div class="card">
+      <h2>Detalning yaqqol tasviri</h2>
+      <canvas id="iso" width="640" height="520"></canvas>
+      <div class="legend">
+        <div><i style="border-top:3px solid #14213d"></i>Asosiy chiziq (ko'rinadigan qirra)</div>
+        <div><i style="border-top:2px dashed #14213d"></i>Shtrix chiziq (ko'rinmas qirra)</div>
+        <div><i style="border-top:1.5px dashed #14213d;border-image:repeating-linear-gradient(90deg,#14213d 0 14px,transparent 14px 17px,#14213d 17px 19px,transparent 19px 22px) 1"></i>Shtrix-punktir (o'q chizig'i)</div>
+        <div><i style="border-top:1.5px solid #1565c0"></i>Bog'lanish nuri (ko'k)</div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Sozlamalar</h2>
+      <div class="set">
+        <span>Tezlik</span><input type="range" id="sSpeed" min="0.25" max="3" step="0.25" value="1">
+        <span>Chiziq qalinligi</span><input type="range" id="sThick" min="4" max="12" step="0.5" value="7">
+        <span>Asosiy chiziq rangi</span><input type="color" id="cMain" value="#14213d">
+        <span>Nur rangi</span><input type="color" id="cHelp" value="#1565c0">
+        <span>O'lcham rangi</span><input type="color" id="cDim" value="#c62828">
+        <label class="ck"><input type="checkbox" id="kTools" checked> Sirkul va chizg'ichni ko'rsatish</label>
+        <label class="ck"><input type="checkbox" id="kShow" checked> O'lchamni chizilgan zahoti ko'rsatish</label>
+        <label class="ck"><input type="checkbox" id="kStop" checked> O'lcham chiqqanda to'xtab turish</label>
+        <label class="ck"><input type="checkbox" id="kLoop"> Takrorlash</label>
+      </div>
+    </div>
+  </div>
+</div>
+<script>
+(function(){
+// ===== Asosiy o'lchamlar (mm) =====
+const S = 9.5;            // 1 mm = 9.5 birlik
+const W = 205, H = 212;   // varaq (mm)
+const cv = document.getElementById('sheet'), ctx = cv.getContext('2d');
+cv.width = W*S; cv.height = H*S;
+
+// Ko'rinishlar joylashuvi. Bosh ko'rinish: (x, z); chapdan: (d, z) d=0 orqa; ustdan: (x, d)
+const F0=25, FB=98, L0=115, T0=128;
+const F=(x,z)=>[F0+x, FB-z];
+const L=(d,z)=>[L0+d, FB-z];
+const T=(x,d)=>[F0+x, T0+d];
+
+// ===== Sozlamalar =====
+const $=id=>document.getElementById(id);
+const cfg=()=>({speed:+$('sSpeed').value, thick:+$('sThick').value, main:$('cMain').value, help:$('cHelp').value, dim:$('cDim').value,
+  tools:$('kTools').checked, show:$('kShow').checked, stop:$('kStop').checked, loop:$('kLoop').checked});
+
+// ===== Qadamlar (ops) =====
+const ln=(a,b,st,say,tag)=>({k:'draw',el:{t:'line',a,b,st:st||'main',tag},say});
+const arc=(c,r,a0,a1,say)=>({k:'draw',el:{t:'arc',c,r,a0,a1,st:'main'},say});
+const td=(p1,p2,o,text,say)=>({k:'tdim',el:{t:'dim',p1,p2,o,text},say});
+const tr=(c,r,ang,out,shelf,text,say)=>({k:'tdim',el:{t:'rad',c,r,ang,out,shelf,text},say});
+const fd=(el,say)=>({k:'fdim',el,say});
+const pt=(p,text,tag,say)=>({k:'add',el:{t:'pt',p,text,tag},say});
+const fade=(tag,say)=>({k:'fade',tag,say});
+const say=(text,t)=>({k:'wait',t:t||1.6,say:text});
+
+const radR15={t:'rad',c:F(30,68),r:15,ang:Math.PI/6,out:25.6,shelf:14,text:'R15'};
+const EX=['cons','link'];
+const er=(a,b,target,say)=>({k:'erase',a,b,target:target||EX,say});
+const ob=(a,b,say)=>({k:'draw',el:{t:'line',a,b,st:'main'},fast:true,say});
+const nur=(a,b,say)=>ln(a,b,'link',say,'link');
+
+// Nurlar (bog'lanish chiziqlari) — har biri detal nuqtasidan boshlanadi
+const VH=[[F(0,0),T(0,58),"x = 0 — chap qirradan."],
+          [F(12,0),T(12,58),"x = 12 — ariqchaning chap devoridan."],
+          [F(15,68),T(15,58),"x = 15 — o'yiqning chap qirrasidan."],
+          [F(45,68),T(45,58),"x = 45 — o'yiqning o'ng qirrasidan."],
+          [F(48,0),T(48,58),"x = 48 — ariqchaning o'ng devoridan."],
+          [F(60,0),T(60,58),"x = 60 — o'ng qirradan."]];
+const L45=[[L0-12,T0-12],[L0+66,T0+66]];
+const HW=[[T(60,0),[L0,T0],"H dagi orqa qirra (chuqurlik 0) — o'ngga, 45° chiziqqacha…"],[[L0,T0],L(0,68),"…so'ng yuqoriga, W ga."],
+          [T(60,12),[L0+12,T0+12],"Chuqurlik 12 — devorning old tomoni…"],[[L0+12,T0+12],L(12,68),"…yuqoriga."],
+          [T(60,58),[L0+58,T0+58],"Chuqurlik 58 — detalning old tomoni…"],[[L0+58,T0+58],L(58,68),"…yuqoriga."]];
+const VW=[[F(60,68),L(58,68),"V dan balandlik 68 — eng yuqori nuqta."],
+          [F(30,53),L(58,53),"Balandlik 53 = 68 − 15 — R15 o'yiqning eng pastki nuqtasidan."],
+          [F(60,12),L(58,12),"Balandlik 12 — asosning yuqori qirrasidan."],
+          [F(48,6),L(58,6),"Balandlik 6 — ariqchaning tepasidan."],
+          [F(60,0),L(58,0),"Balandlik 0 — pastki tekislikdan."]];
+const allLinks=[...VH,L45,...HW,...VW];
+
+const steps=[
+ {title:"O'q chiziqlari (V va H)", ops:[
+   say("V — bosh ko'rinish, H — ustdan ko'rinish, W — chapdan ko'rinish. Ketma-ketlik: 1 — o'q, 2 — gabarit, 3 — kesiklar, 4 — ortiqchasini o'chirish.",3.2),
+   ln([F0+30,FB-75],[F0+30,FB+4],'axis',"1. V dagi simmetriya o'qi — shtrix-punktir chiziq."),
+   ln([F0+30,T0-4],[F0+30,T0+62],'axis',"H dagi simmetriya o'qi — V o'qining davomi."),
+ ]},
+ {title:"V: gabarit to'rtburchak", ops:[
+   say("2. Detalning umumiy o'lchamlari bo'yicha ingichka chiziq bilan gabarit to'rtburchak: 60 × 68.",2),
+   ln(F(0,0),F(60,0),'cons',"Pastki chiziq — detal uzunligi 60 mm."),
+   td(F(0,0),F(60,0),[0,8],'60'),
+   ln(F(0,0),F(0,68),'cons',"Chap tomon — detal balandligi 68 mm."),
+   td(F(0,0),F(0,68),[-10,0],'68'),
+   ln(F(0,68),F(60,68),'cons',"Yuqori chiziq."),
+   ln(F(60,68),F(60,0),'cons',"O'ng tomon. Gabarit to'rtburchak tayyor."),
+ ]},
+ {title:"V: asos, ariqcha, R15 o'yiq", ops:[
+   ln(F(0,12),F(60,12),'cons',"3. Asosning yuqori qirrasi — pastdan 12 mm."),
+   td(F(0,0),F(0,12),[-8,0],'12'),
+   ln(F(12,0),F(12,6),'cons',"Ariqcha chap devori: chetdan (60 − 36) : 2 = 12 mm, balandligi 6 mm."),
+   td(F(0,0),F(12,0),[0,7],'12'),
+   ln(F(48,0),F(48,6),'cons',"Ariqcha o'ng devori — o'qqa nisbatan simmetrik."),
+   ln(F(12,6),F(48,6),'cons',"Ariqcha tepasi — kengligi 36 mm."),
+   td(F(12,6),F(48,6),[0,14],'36'),
+   td(F(12,0),F(12,6),[7,0],'6'),
+   pt(F(30,68),'O','link',"O'q bilan yuqori chiziq kesishgan O nuqta — yoy markazi."),
+   ln([F0+10,FB-68],[F0+50,FB-68],'axis',"O markazdan yarim aylananing gorizontal simmetriya o'qi o'tadi — u o'chirilmaydi, oxirigacha qoladi."),
+   {k:'draw',el:{t:'arc',c:F(30,68),r:15,a0:Math.PI,a1:0,st:'cons'},say:"Sirkul ignasini O nuqtaga qo'yib, R15 yarim aylana chizamiz."},
+   tr(F(30,68),15,Math.PI/6,25.6,14,'R15'),
+ ]},
+ {title:"V: ortiqchani o'chirish, obvodka", ops:[
+   er(F(12,0),F(48,0),EX,"4. Ariqcha joyida detal yo'q — pastki chiziqning 12…48 oralig'ini o'chirg'ich bilan o'chiramiz."),
+   er(F(15,68),F(45,68),EX,"O'yiq joyida ham detal yo'q — yuqori chiziqning 15…45 oralig'ini o'chiramiz. Simmetriya o'qi qoladi!"),
+   say("Ortiqcha chiziqlar o'chirildi. Qolgan konturni asosiy yo'g'on chiziq bilan qayta chizamiz (obvodka).",2),
+   ob(F(0,0),F(12,0),"Obvodka: pastki chiziq…"), ob(F(12,0),F(12,6)), ob(F(12,6),F(48,6)), ob(F(48,6),F(48,0)), ob(F(48,0),F(60,0)),
+   ob(F(60,0),F(60,68),"…o'ng tomon…"), ob(F(60,68),F(45,68)),
+   {k:'draw',el:{t:'arc',c:F(30,68),r:15,a0:0,a1:Math.PI,st:'main'},fast:true,say:"…R15 yoy sirkul bilan…"},
+   ob(F(15,68),F(0,68)), ob(F(0,68),F(0,0),"…chap tomon…"), ob(F(0,12),F(60,12),"…va asos qirrasi. V tayyor!"),
+ ]},
+ {title:"V dan H ga nurlar", ops:[
+   say("H ni chizish uchun V ning har bir qirrasidan pastga vertikal nur tushiramiz (ketma-ket, chapdan o'ngga).",2.2),
+   ...VH.map(v=>nur(v[0],v[1],v[2])),
+ ]},
+ {title:"H: gabarit va qirralar", ops:[
+   ln(T(0,0),T(60,0),'cons',"2. H gabariti: orqa qirra — x = 0 va x = 60 nurlari orasida."),
+   ln(T(0,0),T(0,58),'cons',"Chap qirra — chuqurlik 58 mm."),
+   td(T(0,0),T(0,58),[-8,0],'58'),
+   ln(T(0,58),T(60,58),'cons',"Old qirra."),
+   ln(T(60,58),T(60,0),'cons',"O'ng qirra."),
+   ln(T(0,12),T(60,12),'cons',"3. Tik devor bilan asos chegarasi — orqadan 12 mm."),
+   td(T(0,0),T(0,12),[-8,0],'12'),
+   ln(T(15,0),T(15,12),'cons',"R15 o'yiq tepadan ko'rinadi: chap qirrasi x = 15 nuri ustida…"),
+   ln(T(45,0),T(45,12),'cons',"…o'ng qirrasi x = 45 nuri ustida. O'yiq kengligi 2·15 = 30 mm."),
+   td(T(15,0),T(45,0),[0,-6],'30'),
+ ]},
+ {title:"H: ortiqchani o'chirish, obvodka", ops:[
+   er(T(15,12),T(15,58),EX,"4. O'yiq faqat tik devorda (0…12). x = 15 nurining H dagi ortiqcha qismini o'chiramiz."),
+   er(T(45,12),T(45,58),EX,"x = 45 nurining ortiqcha qismi ham o'chiriladi."),
+   er(T(12,0),T(12,58),EX,"Ariqcha pastda — tepadan ko'rinmaydi. x = 12 nurini o'chirib, o'rniga shtrix chiziq chizamiz."),
+   ln(T(12,0),T(12,58),'hidden',"Ko'rinmas qirra — shtrix chiziq."),
+   er(T(48,0),T(48,58),EX,"x = 48 nuri ham o'chiriladi…"),
+   ln(T(48,0),T(48,58),'hidden',"…o'rniga shtrix chiziq."),
+   ob(T(0,0),T(60,0),"Obvodka."), ob(T(60,0),T(60,58)), ob(T(60,58),T(0,58)), ob(T(0,58),T(0,0)), ob(T(0,12),T(60,12)),
+   ob(T(15,0),T(15,12)), ob(T(45,0),T(45,12),"H tayyor!"),
+ ]},
+ {title:"45° chiziq va W ga nurlar", ops:[
+   nur(L45[0],L45[1],"W ni chizish uchun 45° li doimiy to'g'ri chiziq o'tkazamiz."),
+   say("Chuqurliklar H dan 45° chiziq orqali W ga o'tadi.",1.8),
+   ...HW.map(v=>nur(v[0],v[1],v[2])),
+   say("Balandliklar V dan to'g'ridan-to'g'ri W ga gorizontal nur bilan o'tadi.",1.8),
+   ...VW.map(v=>nur(v[0],v[1],v[2])),
+ ]},
+ {title:"W: gabarit va qirralar", ops:[
+   ln(L(0,0),L(58,0),'cons',"2. W gabariti nurlar kesishgan nuqtalar bo'yicha: pastki chiziq — 58 mm."),
+   ln(L(0,0),L(0,68),'cons',"Orqa tomon — balandlik 68."),
+   ln(L(0,68),L(58,68),'cons',"Yuqori chiziq."),
+   ln(L(58,68),L(58,0),'cons',"Old tomon. Gabarit tayyor."),
+   ln(L(12,68),L(12,12),'cons',"3. Tik devor qalinligi 12 mm."),
+   td(L(0,68),L(12,68),[0,-8],'12'),
+   ln(L(12,12),L(58,12),'cons',"Asosning yuqori qirrasi — balandlik 12."),
+   td(L(58,0),L(58,12),[10,0],'12'),
+ ]},
+ {title:"W: ortiqchani o'chirish, obvodka", ops:[
+   er(L(12,68),L(58,68),EX,"4. Devor oldida detal yo'q — yuqori chiziq va nurning ortiqcha qismini o'chiramiz."),
+   er(L(58,68),L(58,12),EX,"Old tomonning 12 dan yuqori qismi ham ortiqcha — o'chiramiz."),
+   er(L(12,53),L(58,53),EX,"Balandlik 53 nurining devordan tashqaridagi qismi ortiqcha — o'chiramiz."),
+   ob(L(0,0),L(0,68),"Obvodka: orqa tomon…"), ob(L(0,68),L(12,68)), ob(L(12,68),L(12,12)), ob(L(12,12),L(58,12)), ob(L(58,12),L(58,0)), ob(L(58,0),L(0,0),"…pastki chiziq."),
+   er(L(0,53),L(12,53),EX,null),
+   ln(L(0,53),L(12,53),'hidden',"R15 o'yiqning tubi W da ko'rinmaydi — shtrix chiziq (balandlik 53)."),
+   er(L(0,6),L(58,6),EX,null),
+   ln(L(0,6),L(58,6),'hidden',"Ariqchaning tepasi ham ko'rinmaydi — shtrix chiziq (balandlik 6). W tayyor!"),
+ ]},
+ {title:"Nurlarni o'chirish", ops:[
+   say("Nurlar va 45° li chiziq vazifasini bajardi — ularni o'chirg'ich bilan o'chiramiz.",2),
+   ...allLinks.map(l=>({k:'erase',a:l[0],b:l[1],target:['link'],fast:true})),
+   fade('link',null),
+ ]},
+ {title:"O'lchamlarni qo'yish", ops:[
+   fd({t:'dim',p1:F(0,0),p2:F(0,68),o:[-10,0],text:'68'},"Umumiy balandlik 68 — V da."),
+   fd({t:'dim',p1:F(12,0),p2:F(48,0),o:[0,8],text:'36'},"Ariqcha kengligi 36."),
+   fd({t:'dim',p1:F(42,0),p2:F(42,6),o:[0,0],text:'6'},"Ariqcha chuqurligi 6."),
+   fd(radR15,"O'yiq radiusi R15 — chiziq markazdan boshlanadi, strelka yoyga tegadi, raqam polka ustida."),
+   fd({t:'dim',p1:L(0,68),p2:L(12,68),o:[0,-8],text:'12'},"Tik devor qalinligi 12 — W da."),
+   fd({t:'dim',p1:L(58,0),p2:L(58,12),o:[10,0],text:'12'},"Asos balandligi 12."),
+   fd({t:'dim',p1:L(0,0),p2:L(58,0),o:[0,8],text:'58'},"Detal chuqurligi 58."),
+   fd({t:'dim',p1:T(0,58),p2:T(60,58),o:[0,10],text:'60'},"Detal uzunligi 60 — H da."),
+   say("Chizma tayyor! Har bir o'lcham faqat bir marta, shakli eng yaxshi ko'rinadigan ko'rinishda qo'yildi.",3),
+ ]},
+];
+
+// ===== Holat =====
+let els=[], si=0, oi=0, started=false, t=0, phase=0, playing=false, waitUser=false, tool=null, finished=false, cur=null;
+
+function setCaption(text, hint){
+  const c=$('caption');
+  c.innerHTML = '<b>'+(si+1)+'-qadam.</b> '+text + (hint?' <span class="hint">— davom etish uchun «Davom etish» ni bosing.</span>':'');
+}
+let lastSay='';
+function stepList(){
+  const ol=$('steps'); ol.innerHTML='';
+  steps.forEach((s,i)=>{const li=document.createElement('li'); li.textContent=s.title;
+    if(i<si||finished) li.className='done'; if(i===si&&!finished) li.className='cur';
+    li.onclick=()=>jump(i,true); ol.appendChild(li);});
+}
+function len(a,b){return Math.hypot(b[0]-a[0],b[1]-a[1]);}
+
+function startOp(op){
+  t=0; phase=0; cur=null;
+  if(op.say){lastSay=op.say; setCaption(op.say);}
+  const c=cfg();
+  if(op.k==='draw'){
+    cur=Object.assign({},op.el,{prog:0,alpha:1}); els.push(cur);
+    const L_=op.el.t==='line'?len(op.el.a,op.el.b):Math.abs(op.el.a1-op.el.a0)*op.el.r;
+    op._dur = op.fast? Math.max(.3,L_/85)*(op.el.t==='arc'?1.3:1) : op.el.st==='link'? Math.max(.45,L_/90) : Math.max(.6,L_/32)*(op.el.t==='arc'?1.4:1);
+  } else if(op.k==='erase'){
+    op._dur = op.fast? Math.max(.35,len(op.a,op.b)/110) : Math.max(1,len(op.a,op.b)/22);
+    op._cuts=[];
+    const d=[op.b[0]-op.a[0],op.b[1]-op.a[1]], dl=Math.hypot(d[0],d[1])||1;
+    els.forEach(e=>{
+      if(e.t!=='line'||[].concat(op.target).indexOf(e.st)<0) return;
+      const v=[e.b[0]-e.a[0],e.b[1]-e.a[1]], vl2=v[0]*v[0]+v[1]*v[1];
+      if(Math.abs(v[0]*d[1]-v[1]*d[0])/(Math.sqrt(vl2)*dl)>1e-3) return;          // parallel emas
+      const w=[op.a[0]-e.a[0],op.a[1]-e.a[1]];
+      if(Math.abs(v[0]*w[1]-v[1]*w[0])/Math.sqrt(vl2)>0.05) return;              // bir chiziqda emas
+      const ta=(w[0]*v[0]+w[1]*v[1])/vl2, tb=((op.b[0]-e.a[0])*v[0]+(op.b[1]-e.a[1])*v[1])/vl2;
+      if(Math.max(ta,tb)<0||Math.min(ta,tb)>1) return;
+      const c={ta,tb,t0:ta,t1:ta}; (e.cuts=e.cuts||[]).push(c); op._cuts.push(c);
+    });
+  } else if(op.k==='tdim'){
+    if(!c.show){op._skip=true; return;} op._skip=false;
+    cur=Object.assign({},op.el,{alpha:0,temp:true}); els.push(cur);
+  } else if(op.k==='fdim'||op.k==='add'){
+    cur=Object.assign({},op.el,{alpha:0}); els.push(cur);
+  } else if(op.k==='fade'){
+    op._list=els.filter(e=>e.tag===op.tag);
+  }
+}
+function nextOp(){oi++; started=false; tool=null;}
+
+function update(dt){
+  if(!playing||waitUser||finished) return;
+  const step=steps[si];
+  const op=step.ops[oi];
+  if(!op){ // keyingi qadam
+    if(si<steps.length-1){si++; oi=0; started=false; stepList();}
+    else {finished=true; playing=false; stepList(); updBtns();
+      if(cfg().loop) setTimeout(()=>{if(finished&&cfg().loop){jump(0,false); playing=true; updBtns();}},3000);}
+    return;
+  }
+  if(!started){startOp(op); started=true;}
+  t+=dt;
+  const c=cfg();
+  switch(op.k){
+    case 'draw':{
+      cur.prog=Math.min(1,t/op._dur);
+      tool = c.tools ? (cur.t==='arc'?'compass':'ruler') : null;
+      if(cur.prog>=1){cur.prog=1; nextOp();}
+      break;}
+    case 'tdim':{
+      if(op._skip){nextOp();break;}
+      tool=null;
+      if(phase===0){cur.alpha=Math.min(1,t/.4); if(t>=.4){phase=1;t=0; if(c.stop){waitUser=true; setCaption(lastSay,true); updBtns();}}}
+      else if(phase===1){ if(t>=(c.stop?.25:1.6)){phase=2;t=0;} }
+      else {cur.alpha=Math.max(0,1-t/.6); if(t>=.6){els.splice(els.indexOf(cur),1); setCaption(lastSay); nextOp();}}
+      break;}
+    case 'fdim':case 'add':{
+      cur.alpha=Math.min(1,t/.5); if(t>=(op.k==='fdim'?1.4:.8)) nextOp(); break;}
+    case 'fade':{
+      const a=Math.max(0,1-t/1.2); op._list.forEach(e=>e.alpha=a);
+      if(t>=1.2){els=els.filter(e=>op._list.indexOf(e)<0); nextOp();} break;}
+    case 'wait':{ if(t>=op.t) nextOp(); break;}
+    case 'erase':{
+      const p=Math.min(1,t/op._dur);
+      op._cuts.forEach(c=>{const x=c.ta+(c.tb-c.ta)*p; c.t0=Math.min(c.ta,x); c.t1=Math.max(c.ta,x);});
+      const pos=[op.a[0]+(op.b[0]-op.a[0])*p, op.a[1]+(op.b[1]-op.a[1])*p];
+      tool = c.tools? {k:'eraser',pos,dir:[op.b[0]-op.a[0],op.b[1]-op.a[1]],t} : null;
+      if(p>=1) nextOp(); break;}
+  }
+}
+
+function jump(n,keepPlay){
+  els=[]; tool=null; waitUser=false; finished=false;
+  for(let i=0;i<n;i++) steps[i].ops.forEach(op=>{
+    if(op.k==='draw') els.push(Object.assign({},op.el,{prog:1,alpha:1}));
+    else if(op.k==='fdim'||op.k==='add') els.push(Object.assign({},op.el,{alpha:1}));
+    else if(op.k==='fade') els=els.filter(e=>e.tag!==op.tag);
+    else if(op.k==='erase'){ startOp(op); op._cuts.forEach(c=>{c.t0=Math.min(c.ta,c.tb); c.t1=Math.max(c.ta,c.tb);}); }
+  });
+  si=n; oi=0; started=false;
+  if(!keepPlay) playing=false;
+  setCaption(steps[n].title+'.');
+  stepList(); updBtns();
+}
+
+// ===== Chizish =====
+function px(v){return v*S;}
+function styleFor(st,c){
+  const th=c.thick, thin=Math.max(2.2,th*0.38);
+  ctx.setLineDash([]); ctx.lineCap='round';
+  if(st==='main'){ctx.strokeStyle=c.main; ctx.lineWidth=th;}
+  else if(st==='hidden'){ctx.strokeStyle=c.main; ctx.lineWidth=th*0.55; ctx.setLineDash([px(4),px(1.6)]); ctx.lineCap='butt';}
+  else if(st==='axis'){ctx.strokeStyle=c.main; ctx.lineWidth=thin; ctx.setLineDash([px(12),px(1.8),px(0.6),px(1.8)]); ctx.lineCap='butt';}
+  else if(st==='link'){ctx.strokeStyle=c.help; ctx.lineWidth=thin;}
+  else if(st==='cons'){ctx.strokeStyle=c.main; ctx.globalAlpha*=0.7; ctx.lineWidth=thin;}
+}
+function drawEl(e,c){
+  ctx.save(); ctx.globalAlpha=e.alpha==null?1:e.alpha;
+  if(e.t==='line'){
+    styleFor(e.st,c);
+    let segs=[[0,e.prog]];
+    (e.cuts||[]).forEach(c=>{const n=[]; segs.forEach(([s0,s1])=>{
+      if(c.t1<=s0||c.t0>=s1){n.push([s0,s1]);return;}
+      if(c.t0>s0) n.push([s0,c.t0]); if(c.t1<s1) n.push([c.t1,s1]);}); segs=n;});
+    const P=k=>[px(e.a[0]+(e.b[0]-e.a[0])*k), px(e.a[1]+(e.b[1]-e.a[1])*k)];
+    segs.forEach(([s0,s1])=>{ if(s1-s0<1e-4) return; const p0=P(s0),p1=P(s1);
+      ctx.beginPath(); ctx.moveTo(p0[0],p0[1]); ctx.lineTo(p1[0],p1[1]); ctx.stroke(); });
+  } else if(e.t==='arc'){
+    styleFor(e.st,c);
+    const a=e.a0+(e.a1-e.a0)*e.prog;
+    ctx.beginPath(); ctx.arc(px(e.c[0]),px(e.c[1]),px(e.r),e.a0,a,e.a1<e.a0); ctx.stroke();
+  } else if(e.t==='dim') drawDim(e,c);
+  else if(e.t==='rad') drawRad(e,c);
+  else if(e.t==='pt'){
+    ctx.fillStyle=c.help; ctx.beginPath(); ctx.arc(px(e.p[0]),px(e.p[1]),px(.9),0,7); ctx.fill();
+    ctx.font='italic bold '+px(4.2)+'px Arial'; ctx.textAlign='right'; ctx.textBaseline='bottom';
+    ctx.fillText(e.text,px(e.p[0]-1.5),px(e.p[1]-1.2));
+  }
+  ctx.restore();
+}
+function arrow(p,u,c){ // uchi p da, yo'nalishi u
+  const l=2.8,w=0.55; const n=[-u[1],u[0]];
+  ctx.beginPath(); ctx.moveTo(px(p[0]),px(p[1]));
+  ctx.lineTo(px(p[0]-u[0]*l+n[0]*w),px(p[1]-u[1]*l+n[1]*w));
+  ctx.lineTo(px(p[0]-u[0]*l-n[0]*w),px(p[1]-u[1]*l-n[1]*w)); ctx.closePath(); ctx.fill();
+}
+function seg(a,b){ctx.beginPath(); ctx.moveTo(px(a[0]),px(a[1])); ctx.lineTo(px(b[0]),px(b[1])); ctx.stroke();}
+function dimStyle(c){ctx.strokeStyle=c.dim; ctx.fillStyle=c.dim; ctx.lineWidth=Math.max(2,c.thick*0.33); ctx.setLineDash([]); ctx.lineCap='butt';
+  ctx.font='italic '+px(4.6)+'px Arial';}
+function drawDim(d,c){
+  dimStyle(c);
+  const [ox,oy]=d.o, ol=Math.hypot(ox,oy);
+  if(ol>0){const nx=ox/ol, ny=oy/ol;
+    seg(d.p1,[d.p1[0]+ox+nx*2,d.p1[1]+oy+ny*2]); seg(d.p2,[d.p2[0]+ox+nx*2,d.p2[1]+oy+ny*2]);}
+  const a=[d.p1[0]+ox,d.p1[1]+oy], b=[d.p2[0]+ox,d.p2[1]+oy];
+  const L_=len(a,b), u=[(b[0]-a[0])/L_,(b[1]-a[1])/L_];
+  if(L_>=10){ seg(a,b); arrow(a,[-u[0],-u[1]]); arrow(b,u); }
+  else { seg([a[0]-u[0]*5,a[1]-u[1]*5],[b[0]+u[0]*5,b[1]+u[1]*5]); arrow(a,u); arrow(b,[-u[0],-u[1]]); }
+  const m=[(a[0]+b[0])/2,(a[1]+b[1])/2];
+  ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+  if(Math.abs(u[1])<0.5){ ctx.fillText(d.text,px(m[0]),px(m[1]-1.1)); }
+  else { ctx.save(); ctx.translate(px(m[0]-1.1),px(m[1])); ctx.rotate(-Math.PI/2); ctx.fillText(d.text,0,0); ctx.restore(); }
+}
+function drawRad(d,c){
+  dimStyle(c);
+  const u=[Math.cos(d.ang),Math.sin(d.ang)];
+  const pa=[d.c[0]+u[0]*d.r,d.c[1]+u[1]*d.r], pe=[d.c[0]+u[0]*(d.r+d.out),d.c[1]+u[1]*(d.r+d.out)];
+  seg(d.c,pe); arrow(pa,u);
+  const ps=[pe[0]+d.shelf,pe[1]]; seg(pe,ps);
+  ctx.textAlign='center'; ctx.textBaseline='alphabetic';
+  ctx.fillText(d.text,px((pe[0]+ps[0])/2),px(pe[1]-1.1));
+}
+
+// Asboblar
+function drawRuler(a,b,tip){
+  const L_=len(a,b); if(L_<.01) return;
+  const u=[(b[0]-a[0])/L_,(b[1]-a[1])/L_]; let n=[-u[1],u[0]];
+  if(n[1]<0||(Math.abs(n[1])<.01&&n[0]>0)) n=[-n[0],-n[1]]; // chizg'ich pastda yoki chapda
+  if(Math.abs(u[0])<.01) n=[-1,0];
+  const s=[a[0]-u[0]*8,a[1]-u[1]*8], e=[b[0]+u[0]*8,b[1]+u[1]*8], w=9, g=.6;
+  const P=(p,k)=>[px(p[0]+n[0]*k),px(p[1]+n[1]*k)];
+  ctx.save(); ctx.globalAlpha=.88;
+  ctx.fillStyle='rgba(255,214,102,.55)'; ctx.strokeStyle='#a8781a'; ctx.lineWidth=2;
+  ctx.beginPath(); let q=P(s,g); ctx.moveTo(q[0],q[1]); q=P(e,g); ctx.lineTo(q[0],q[1]); q=P(e,g+w); ctx.lineTo(q[0],q[1]); q=P(s,g+w); ctx.lineTo(q[0],q[1]); ctx.closePath(); ctx.fill(); ctx.stroke();
+  ctx.strokeStyle='#6b4e12'; ctx.lineWidth=1.4;
+  const tot=len(s,e);
+  for(let i=0;i<=tot;i++){const p=[s[0]+u[0]*i,s[1]+u[1]*i]; const k=(i%10===0)?3.2:(i%5===0?2.2:1.2);
+    const p1=P(p,g), p2=P(p,g+k); ctx.beginPath(); ctx.moveTo(p1[0],p1[1]); ctx.lineTo(p2[0],p2[1]); ctx.stroke();}
+  ctx.restore();
+  drawPencil(tip);
+}
+function drawPencil(p){
+  const d=[0.45,-0.89], n=[-d[1],d[0]], X=v=>px(v);
+  const tipL=5, body=24, w=1.8;
+  const b0=[p[0]+d[0]*tipL,p[1]+d[1]*tipL], b1=[b0[0]+d[0]*body,b0[1]+d[1]*body];
+  ctx.save();
+  ctx.fillStyle='#f2c98a'; ctx.beginPath(); ctx.moveTo(X(p[0]),X(p[1])); ctx.lineTo(X(b0[0]+n[0]*w),X(b0[1]+n[1]*w)); ctx.lineTo(X(b0[0]-n[0]*w),X(b0[1]-n[1]*w)); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#333'; const g=[p[0]+d[0]*1.8,p[1]+d[1]*1.8];
+  ctx.beginPath(); ctx.moveTo(X(p[0]),X(p[1])); ctx.lineTo(X(g[0]+n[0]*.7),X(g[1]+n[1]*.7)); ctx.lineTo(X(g[0]-n[0]*.7),X(g[1]-n[1]*.7)); ctx.closePath(); ctx.fill();
+  ctx.fillStyle='#2e7d32'; ctx.beginPath();
+  ctx.moveTo(X(b0[0]+n[0]*w),X(b0[1]+n[1]*w)); ctx.lineTo(X(b1[0]+n[0]*w),X(b1[1]+n[1]*w)); ctx.lineTo(X(b1[0]-n[0]*w),X(b1[1]-n[1]*w)); ctx.lineTo(X(b0[0]-n[0]*w),X(b0[1]-n[1]*w)); ctx.closePath(); ctx.fill();
+  ctx.restore();
+}
+function drawCompass(c0,r,ang){
+  const p=[c0[0]+r*Math.cos(ang),c0[1]+r*Math.sin(ang)];
+  const m=[(c0[0]+p[0])/2,(c0[1]+p[1])/2]; const Lg=r/2+26;
+  const h=Math.sqrt(Math.max(1,Lg*Lg-(r/2)*(r/2)));
+  let n=[-(p[1]-c0[1])/r,(p[0]-c0[0])/r]; if(n[1]>0) n=[-n[0],-n[1]];
+  const Hh=[m[0]+n[0]*h,m[1]+n[1]*h], Tp=[Hh[0]+n[0]*9,Hh[1]+n[1]*9];
+  ctx.save(); ctx.globalAlpha=.92; ctx.lineCap='round';
+  ctx.strokeStyle='#7d8b96'; ctx.lineWidth=px(1.6); seg(c0,Hh); seg(p,Hh);
+  ctx.strokeStyle='#4a5560'; ctx.lineWidth=px(.5); seg(c0,Hh); seg(p,Hh);
+  ctx.strokeStyle='#37474f'; ctx.lineWidth=px(2.2); seg(Hh,Tp);
+  ctx.fillStyle='#37474f'; ctx.beginPath(); ctx.arc(px(Hh[0]),px(Hh[1]),px(2.2),0,7); ctx.fill();
+  ctx.fillStyle='#c62828'; ctx.beginPath(); ctx.arc(px(c0[0]),px(c0[1]),px(.8),0,7); ctx.fill();
+  ctx.fillStyle='#222'; ctx.beginPath(); ctx.arc(px(p[0]),px(p[1]),px(.8),0,7); ctx.fill();
+  ctx.restore();
+}
+
+function drawEraser(T_){
+  const L_=Math.hypot(T_.dir[0],T_.dir[1])||1, u=[T_.dir[0]/L_,T_.dir[1]/L_], n=[-u[1],u[0]];
+  const w=Math.sin(T_.t*28)*1.2; // ishqalanish
+  const c=[T_.pos[0]+n[0]*w, T_.pos[1]+n[1]*w];
+  ctx.save(); ctx.translate(px(c[0]),px(c[1])); ctx.rotate(-0.35);
+  const bw=px(13), bh=px(7);
+  ctx.globalAlpha=.93;
+  ctx.fillStyle='#f48fb1'; ctx.strokeStyle='#ad1457'; ctx.lineWidth=2.5;
+  ctx.beginPath(); ctx.roundRect(-bw/2,-bh*0.9,bw*0.55,bh*1.8,px(1.2)); ctx.fill(); ctx.stroke();
+  ctx.fillStyle='#1e88e5'; ctx.strokeStyle='#0d47a1';
+  ctx.beginPath(); ctx.roundRect(-bw/2+bw*0.55,-bh*0.9,bw*0.45,bh*1.8,px(1.2)); ctx.fill(); ctx.stroke();
+  ctx.restore();
+  ctx.save(); ctx.fillStyle='rgba(173,20,87,.45)';
+  for(let i=0;i<5;i++){const k=(i*37+Math.floor(T_.t*10)*13)%17-8; ctx.beginPath();
+    ctx.arc(px(T_.pos[0]-u[0]*(3+i*1.5)+n[0]*k*.5),px(T_.pos[1]-u[1]*(3+i*1.5)+n[1]*k*.5),px(.45),0,7); ctx.fill();}
+  ctx.restore();
+}
+function render(){
+  const c=cfg();
+  ctx.setTransform(1,0,0,1,0,0); ctx.fillStyle='#fff'; ctx.fillRect(0,0,cv.width,cv.height);
+  // ramka
+  ctx.strokeStyle='#9fb0a5'; ctx.lineWidth=3; ctx.setLineDash([]); ctx.strokeRect(px(5),px(5),px(W-10),px(H-10));
+  els.forEach(e=>drawEl(e,c));
+  if(tool&&tool.k==='eraser'&&playing&&!waitUser){ drawEraser(tool); }
+  else if(tool&&cur&&playing&&!waitUser){
+    if(tool==='ruler'){const b=[cur.a[0]+(cur.b[0]-cur.a[0])*cur.prog, cur.a[1]+(cur.b[1]-cur.a[1])*cur.prog]; drawRuler(cur.a,cur.b,b);}
+    else drawCompass(cur.c,cur.r,cur.a0+(cur.a1-cur.a0)*cur.prog);
+  }
+}
+
+let last=performance.now();
+function loop(now){const dt=Math.min(.05,(now-last)/1000); last=now; update(dt*cfg().speed); render(); requestAnimationFrame(loop);}
+requestAnimationFrame(loop);
+
+// ===== Tugmalar =====
+function updBtns(){
+  $('bPlay').textContent = playing?'⏸ Pauza':(finished?'▶ Qaytadan boshlash':'▶ Boshlash');
+  $('bCont').className = waitUser?'attn':'sec';
+}
+$('bPlay').onclick=()=>{ if(finished){jump(0,false);} playing=!playing; if(playing&&waitUser){} updBtns(); };
+$('bCont').onclick=()=>{ if(waitUser){waitUser=false; setCaption(lastSay);} else if(!playing){ if(finished) jump(0,false); playing=true;} updBtns(); };
+$('bPrev').onclick=()=>{ const keep=playing||waitUser; jump(finished?steps.length-2:Math.max(0,si-1),keep); if(keep) playing=true; updBtns(); };
+$('bNext').onclick=()=>{ if(si<steps.length-1) jump(si+1,true); else {jump(steps.length-1,false); steps[si].ops.forEach(op=>{if(op.k==='fdim') els.push(Object.assign({},op.el,{alpha:1}));}); finished=true; si=steps.length-1; stepList(); updBtns();} };
+$('bReset').onclick=()=>{jump(0,false); $('caption').innerHTML='«Boshlash» tugmasini bosing.';};
+stepList(); updBtns();
+
+// ===== Izometriya =====
+(function iso(){
+  const c=$('iso'), g=c.getContext('2d');
+  const P=([x,y,z])=>[(x+y)*0.7071,-(x-y+2*z)*0.4082];
+  const faces=[];
+  // silindrik o'yiq yuzasi (ko'rinadigan qismi)
+  const N=20, f0=5*Math.PI/4, f1=2*Math.PI;
+  for(let i=0;i<N;i++){const a=f0+(f1-f0)*i/N, b=f0+(f1-f0)*(i+1)/N;
+    const q=(f,y)=>[30+15*Math.cos(f),y,68+15*Math.sin(f)];
+    const sh=Math.cos((a+b)/2)-Math.sin((a+b)/2); // 0..1.41
+    const v=Math.round(150+sh*55);
+    faces.push({p:[q(a,0),q(b,0),q(b,12),q(a,12)],col:`rgb(${v-30},${v-14},${v+12})`,noStroke:true});}
+  faces.push({p:[[0,0,68],[15,0,68],[15,12,68],[0,12,68]],col:'#e8eef6'});
+  faces.push({p:[[45,0,68],[60,0,68],[60,12,68],[45,12,68]],col:'#e8eef6'});
+  const front=[[0,12,12],[60,12,12],[60,12,68],[45,12,68]];
+  for(let i=0;i<=24;i++){const f=-i*Math.PI/24; front.push([30+15*Math.cos(f),12,68+15*Math.sin(f)]);}
+  front.push([15,12,68],[0,12,68]); faces.push({p:front,col:'#b9c8dc'});
+  faces.push({p:[[0,12,12],[60,12,12],[60,58,12],[0,58,12]],col:'#e8eef6'});
+  faces.push({p:[[0,58,0],[12,58,0],[12,58,6],[48,58,6],[48,58,0],[60,58,0],[60,58,12],[0,58,12]],col:'#b9c8dc'});
+  faces.push({p:[[0,0,0],[0,58,0],[0,58,12],[0,12,12],[0,12,68],[0,0,68]],col:'#8fa5c2'});
+  // masshtab
+  let mnx=1e9,mxx=-1e9,mny=1e9,mxy=-1e9;
+  faces.forEach(f=>f.p.forEach(p=>{const [a,b]=P(p); mnx=Math.min(mnx,a);mxx=Math.max(mxx,a);mny=Math.min(mny,b);mxy=Math.max(mxy,b);}));
+  const sc=Math.min((c.width-60)/(mxx-mnx),(c.height-60)/(mxy-mny));
+  const ox=(c.width-(mxx-mnx)*sc)/2-mnx*sc, oy=(c.height-(mxy-mny)*sc)/2-mny*sc;
+  const Q=p=>{const [a,b]=P(p); return [ox+a*sc, oy+b*sc];};
+  g.lineJoin='round';
+  faces.forEach(f=>{g.beginPath(); f.p.forEach((p,i)=>{const [a,b]=Q(p); i?g.lineTo(a,b):g.moveTo(a,b);}); g.closePath();
+    g.fillStyle=f.col; g.fill(); if(!f.noStroke){g.strokeStyle='#14213d'; g.lineWidth=2.4; g.stroke();}});
+  // o'yiqning orqa qirrasi va silueti
+  g.strokeStyle='#14213d'; g.lineWidth=2.4; g.beginPath();
+  for(let i=0;i<=N;i++){const f=f0+(f1-f0)*i/N; const [a,b]=Q([30+15*Math.cos(f),0,68+15*Math.sin(f)]); i?g.lineTo(a,b):g.moveTo(a,b);} g.stroke();
+  const s1=Q([30+15*Math.cos(f0),0,68+15*Math.sin(f0)]), s2=Q([30+15*Math.cos(f0),12,68+15*Math.sin(f0)]);
+  g.beginPath(); g.moveTo(s1[0],s1[1]); g.lineTo(s2[0],s2[1]); g.stroke();
+})();
+
+window.app={jump,steps,get state(){return {si,oi,waitUser,playing,finished}},setPlay(v){playing=v;},cont(){waitUser=false;},update,render};
+})();
+</script>
+</body>
+</html>
